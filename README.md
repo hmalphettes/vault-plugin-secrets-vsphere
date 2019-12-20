@@ -8,9 +8,8 @@ It was forked from the Mock plugin found in the vault-guides.
 
 Exploration and POC stage.
 
-Store a VSphere `sudoer` user
+Store a VSphere `sudoer` user in Vault.
 Create short lived users or sessions managed by Vault
-
 
 
 ## Usage
