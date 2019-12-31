@@ -1,20 +1,24 @@
 module github.com/hmalphettes/vault-plugin-secrets-vsphere
 
-go 1.12
+go 1.13
 
 require (
+	github.com/Azure/azure-sdk-for-go v37.2.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.9.3
+	github.com/Azure/go-autorest/autorest/to v0.3.0
+	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/go-hclog v0.10.1
 	github.com/hashicorp/go-immutable-radix v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.4 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/hashicorp/vault-guides/secrets/mock v0.0.0-20191212024156-8c22d612b376
-	github.com/hashicorp/vault/api v1.0.4
-	github.com/hashicorp/vault/sdk v0.1.13
+	github.com/hashicorp/vault/api v1.0.5-0.20191216174727-9d51b36f3ae4
+	github.com/hashicorp/vault/sdk v0.1.14-0.20191218020134-06959d23b502
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/pierrec/lz4 v2.4.0+incompatible // indirect

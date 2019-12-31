@@ -21,10 +21,10 @@ start:
 	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins
 
 enable:
-	vault secrets enable mock
+	vault secrets enable vspheresecrets
 
 clean:
-	rm -f ./vault/plugins/mock
+	rm -f ./vault/plugins/vspheresecrets
 
 fmt:
 	go fmt $$(go list ./...)
