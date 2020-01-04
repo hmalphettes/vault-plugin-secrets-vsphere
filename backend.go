@@ -43,12 +43,12 @@ func backend() *vsphereSecretBackend {
 			pathsRole(&b),
 			[]*framework.Path{
 				pathConfig(&b),
-				pathServicePrincipal(&b),
+				// pathServicePrincipal(&b),
 			},
 		),
 		Secrets: []*framework.Secret{
-			secretServicePrincipal(&b),
-			secretStaticServicePrincipal(&b),
+			// secretServicePrincipal(&b),
+			// secretStaticServicePrincipal(&b),
 		},
 		BackendType: logical.TypeLogical,
 		Invalidate:  b.invalidate,

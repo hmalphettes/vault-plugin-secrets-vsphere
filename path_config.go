@@ -3,8 +3,9 @@ package vspheresecrets
 import (
 	"context"
 	"errors"
-	"strings"
+	"net/url"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -13,14 +14,14 @@ const (
 	configStoragePath = "config"
 )
 
-// vsphereConfig contains values to configure VSphere clients and
+// vsphereConfig contains values to configure vSphere clients and
 // defaults for roles. The zero value is useful and results in
 // environments variable and system defaults being used.
 type vsphereConfig struct {
 	URL      string `json:"url"`
-	username string `json:"username"`
-	password string `json:"password"`
-	insecure bool   `json:"insecure"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Insecure bool   `json:"insecure,omitempty"`
 }
 
 func pathConfig(b *vsphereSecretBackend) *framework.Path {
@@ -66,6 +67,8 @@ func (b *vsphereSecretBackend) pathConfigWrite(ctx context.Context, req *logical
 		return nil, err
 	}
 
+	var merr *multierror.Error
+
 	if config == nil {
 		if req.Operation == logical.UpdateOperation {
 			return nil, errors.New("config not found during update operation")
@@ -73,26 +76,32 @@ func (b *vsphereSecretBackend) pathConfigWrite(ctx context.Context, req *logical
 		config = new(vsphereConfig)
 	}
 
-	if url, ok := data.GetOk("url"); ok {
-		config.URL = url.(string)
+	if urlD, ok := data.GetOk("url"); ok {
+		config.URL = urlD.(string)
+		if config.URL == "" {
+			merr = multierror.Append(merr, errors.New("The 'url' must not be empty"))
+		} else {
+			if _, err := url.ParseRequestURI(config.URL); err != nil {
+				merr = multierror.Append(merr, err)
+			}
+		}
 	}
 
 	if username, ok := data.GetOk("username"); ok {
-		config.username = username.(string)
+		config.Username = username.(string)
 	}
 
 	if password, ok := data.GetOk("password"); ok {
-		config.password = password.(string)
+		config.Password = password.(string)
 	}
 
 	if insecure, ok := data.GetOk("insecure"); ok {
-		insecureStr := insecure.(string)
-		config.insecure = insecureStr == "1" || strings.ToLower(insecureStr) == "true"
+		config.Insecure = insecure.(bool)
 	}
 
-	// if merr.ErrorOrNil() != nil {
-	// 	return logical.ErrorResponse(merr.Error()), nil
-	// }
+	if merr.ErrorOrNil() != nil {
+		return logical.ErrorResponse(merr.Error()), nil
+	}
 
 	err = b.saveConfig(ctx, config, req.Storage)
 
@@ -113,9 +122,9 @@ func (b *vsphereSecretBackend) pathConfigRead(ctx context.Context, req *logical.
 	resp := &logical.Response{
 		Data: map[string]interface{}{
 			"url":      config.URL,
-			"username": config.username,
-			"password": config.password, // should it be "censored" ?
-			"insecure": config.insecure,
+			"username": config.Username,
+			// "password": config.Password, // dont return the sensitive secret
+			"insecure": config.Insecure,
 		},
 	}
 	return resp, nil
@@ -177,9 +186,9 @@ func (b *vsphereSecretBackend) saveConfig(ctx context.Context, config *vsphereCo
 	return nil
 }
 
-const confHelpSyn = `Configure the VSphere Secret backend.`
+const confHelpSyn = `Configure the vSphere Secret backend.`
 const confHelpDesc = `
-The VSphere secret backend requires credentials for managing users.
+The vSphere secret backend requires credentials for managing users.
 This endpoint is used to configure those credentials as
 well as default values for the backend in general.
 `

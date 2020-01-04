@@ -1,4 +1,4 @@
-# Vault VSphere Secrets Plugin
+# Vault vSphere Secrets Plugin
 
 VSphere Secrets plugins is a secrets engine plugin for [HashiCorp Vault](https://www.vaultproject.io/). It is meant for demonstration purposes only and should not be used in production at this time.
 
@@ -12,10 +12,10 @@ The license is identical to that of the vault-plugin-secrets-azure: MPL-2.0.
 
 Exploration and POC stage.
 
-Store a VSphere `sudoer` user in Vault.
+Store a vSphere `sudoer` user in Vault.
 Configure roles that create short lived users or sessions managed by Vault.
 Map existing users to roles.
-Put in place unit tests relying on govmomi/vcsim's mock framework for VSphere.
+Put in place unit tests relying on govmomi/vcsim's mock framework for vSphere.
 
 ## Setup
 
@@ -23,7 +23,7 @@ Most secrets engines must be configured in advance before they can perform their
 functions. These steps are usually completed by an operator or configuration
 management tool.
 
-1. Enable the VSphere secrets engine:
+1. Enable the vSphere secrets engine:
 
     ```text
     $ vault secrets enable vsphere
@@ -50,7 +50,7 @@ management tool.
     In that case only roles configured with an existing user and password will be functional
 
 2. Configure a role. A role may be set up with either an existing user, or
-a set of VSphere roles that will be assigned to a dynamically created service principal.
+a set of vSphere roles that will be assigned to a dynamically created service principal.
 
 To configure a role called "my-role" with an existing user:
 
@@ -58,7 +58,7 @@ To configure a role called "my-role" with an existing user:
     $ vault write vsphere/roles/my-role username=<existing_username> password=<existing_password-or-empty> ttl=1h
     ```
 
-Alternatively, to configure the role to create a new user with VSphere roles (?? does this exist ??):
+Alternatively, to configure the role to create a new user with vSphere roles (?? does this exist ??):
 
     ```text
     $ vault write vsphere/roles/my-role ttl=1h vsphere_roles=VMsAdmin,DisksAdmin" vsphere_groups="PerfView"
@@ -84,8 +84,8 @@ Now open a new terminal window and run the following commands:
 # Open a new terminal window and export Vault dev server http address
 $ export VAULT_ADDR='http://127.0.0.1:8200'
 
-# Enable the Mock plugin
-$ make enable
+# Enable the vSphere secrets plugin
+$ vault secrets enable vspheresecrets
 
 # Write a secret to the Mock secrets engine
 $ vault write vsphere/test hello="world"
@@ -101,3 +101,7 @@ hello    world
 ## License
 
 Mock was contributed to the HashiCorp community by [hasheddan](https://github.com/hasheddan/vault-plugin-secrets-covert). In doing so, the original license has been removed.
+
+Most of the code is modeled after the github.com/hashicorp/vault-plugin-secrets-azure
+
+The license is identical to that of the vault-plugin-secrets-azure: MPL-2.0.
