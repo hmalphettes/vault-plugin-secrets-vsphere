@@ -2,14 +2,9 @@ module github.com/hmalphettes/vault-plugin-secrets-vsphere
 
 go 1.13
 
-replace github.com/nats-io/go-nats => github.com/nats-io/nats.go v1.9.1
-
-replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
-
-replace google.golang.org/cloud => cloud.google.com/go v0.39.0
-
 require (
 	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/frankban/quicktest v1.7.2 // indirect
 	github.com/go-test/deep v1.0.2-0.20181118220953-042da051cf31
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0

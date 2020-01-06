@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -14,10 +15,13 @@ type vsphereSecretBackend struct {
 	*framework.Backend
 
 	getProvider func(*clientSettings) (VSphereProvider, error)
+	client      *client
 	settings    *clientSettings
 	lock        sync.RWMutex
 
-	// store map[string][]byte
+	// Creating/deleting passwords against a single Application is a PATCH
+	// operation that must be locked per Application Object ID.
+	appLocks []*locksutil.LockEntry
 }
 
 // Factory configures and returns VSphere backends

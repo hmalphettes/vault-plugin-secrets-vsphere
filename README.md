@@ -25,7 +25,7 @@ management tool.
 
 1. Enable the vSphere secrets engine:
 
-    ```text
+    ```bash
     $ vault secrets enable vsphere
     Success! Enabled the vsphere secrets engine at: vsphere/
     ```
@@ -35,7 +35,7 @@ management tool.
 
 1. Configure the secrets engine with `admin` account credentials:
 
-    ```text
+    ```bash
     $ vault write vsphere/config \
     url=$GOVMOMI_URL \
     username=$GOVMOMI_USERNAME \
@@ -54,13 +54,13 @@ a set of vSphere roles that will be assigned to a dynamically created service pr
 
 To configure a role called "my-role" with an existing user:
 
-    ```text
+    ```bash
     $ vault write vsphere/roles/my-role username=<existing_username> password=<existing_password-or-empty> ttl=1h
     ```
 
 Alternatively, to configure the role to create a new user with vSphere roles (?? does this exist ??):
 
-    ```text
+    ```bash
     $ vault write vsphere/roles/my-role ttl=1h vsphere_roles=VMsAdmin,DisksAdmin" vsphere_groups="PerfView"
     ```
 
@@ -74,22 +74,22 @@ TTL. For more information on roles see the [roles](#roles) section below.
 All commands can be run using the provided [Makefile](./Makefile). However, it may be instructive to look at the commands to gain a greater understanding of how Vault registers plugins. Using the Makefile will result in running the Vault server in `dev` mode. Do not run Vault in `dev` mode in production. The `dev` server allows you to configure the plugin directory as a flag, and automatically registers plugin binaries in that directory. In production, plugin binaries must be manually registered.
 
 This will build the plugin binary and start the Vault dev server:
-```
-# Build Mock plugin and start Vault dev server with plugin automatically registered
+```bash
+# Build vSphere plugin and start Vault dev server with plugin automatically registered
 $ make
 ```
 
 Now open a new terminal window and run the following commands:
-```
+```bash
 # Open a new terminal window and export Vault dev server http address
-$ export VAULT_ADDR='http://127.0.0.1:8200'
+$ export VAULT_ADDR="http://127.0.0.1:8200"
 
 # Enable the vSphere secrets plugin
-$ vault secrets enable vspheresecrets
+$ vault secrets enable vsphere
 
-# Write a secret to the Mock secrets engine
-$ vault write vsphere/test hello="world"
-Success! Data written to: mock/test
+# Configure the vSphere secrets engine
+$ vault write vsphere/config url="http://localhost:8056" username="root" password="root" insecure="true"
+Success! Data written to: vsphere/config
 
 # Retrieve secret from Mock secrets engine
 $ vault read mock/test

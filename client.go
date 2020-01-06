@@ -3,12 +3,19 @@ package vspheresecrets
 import (
 	"context"
 	"errors"
+	"net/url"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/vmware/govmomi"
+)
+
+const (
+	retryTimeout   = 80 * time.Second
+	clientLifetime = 30 * time.Minute // copied from azure... is this relevant here?
 )
 
 // clientSettings is used by a client to configure the connections to Azure.
@@ -19,6 +26,25 @@ type clientSettings struct {
 	Password  string
 	Insecure  bool
 	PluginEnv *logical.PluginEnvironment
+}
+
+func (settings *clientSettings) makeLoginURL(username, password string) *url.URL {
+	vURL, err := url.Parse(settings.URL) // this is validated earlier
+	if err != nil {
+		panic(err)
+	}
+	if username != "" {
+		vURL.User = url.UserPassword(username, password)
+	}
+	return vURL
+}
+
+// makeGovmomiClient returns a new govmomi client. If no username is passed, then no authentication takes place as documented in govmomi.NewClient.
+func (settings *clientSettings) makeGovmomiClient(username, password string) (*govmomi.Client, error) {
+	u := settings.makeLoginURL(username, password)
+	client, err := govmomi.NewClient(context.Background(), u, settings.Insecure)
+	return client, err
+
 }
 
 // getClientSettings creates a new clientSettings object.
@@ -73,5 +99,46 @@ func (b *vsphereSecretBackend) getClient(ctx context.Context, s logical.Storage)
 	b.lock.RLock()
 	unlockFunc := b.lock.RUnlock
 	defer func() { unlockFunc() }()
-	return nil, nil
+
+	if b.client.Valid() {
+		return b.client, nil
+	}
+
+	b.lock.RUnlock()
+	b.lock.Lock()
+	unlockFunc = b.lock.Unlock
+
+	if b.client.Valid() {
+		return b.client, nil
+	}
+
+	if b.settings == nil {
+		config, err := b.getConfig(ctx, s)
+		if err != nil {
+			return nil, err
+		}
+		if config == nil {
+			config = new(vsphereConfig)
+		}
+
+		settings, err := b.getClientSettings(ctx, config)
+		if err != nil {
+			return nil, err
+		}
+		b.settings = settings
+	}
+
+	p, err := b.getProvider(b.settings)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &client{
+		provider:   p,
+		settings:   b.settings,
+		expiration: time.Now().Add(clientLifetime),
+	}
+	b.client = c
+
+	return c, nil
 }
