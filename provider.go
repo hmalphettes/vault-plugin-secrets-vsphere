@@ -2,6 +2,7 @@ package vspheresecrets
 
 import (
 	"context"
+
 	"github.com/vmware/govmomi"
 )
 
@@ -13,7 +14,7 @@ type VSphereProvider interface {
 	RoleExists(ctx context.Context, role string) (bool, error)
 	GroupExists(ctx context.Context, group string) (bool, error)
 	UserExists(ctx context.Context, username string) (bool, error)
-	Login(ctx context.Context, role string, toBeDefined map[string]interface{}) (*govmomi.Client, error)
+	Login(ctx context.Context, username, password string, toBeDefined map[string]interface{}) (*govmomi.Client, error)
 	StartSession(ctx context.Context, toBeDefined map[string]interface{}) (string, error)
 	RenewSession(ctx context.Context, toBeDefined map[string]interface{}) error
 	RevokeSession(ctx context.Context, toBeDefined map[string]interface{}) error
@@ -23,6 +24,7 @@ type VSphereProvider interface {
 // to the appropriate client object. But if the response requires processing that is more practical
 // at this layer, the response signature may different from the vSphere signature.
 type provider struct {
+	settings      *clientSettings
 	govmomiClient *govmomi.Client
 }
 
@@ -32,31 +34,32 @@ func (p *provider) GetMountGovmomiClient() *govmomi.Client {
 	return p.govmomiClient
 }
 
-func (sc *provider) Login(ctx context.Context, role string, toBeDefined map[string]interface{}) (*govmomi.Client, error) {
-	return nil, nil
+// Login authenticate with the credentials defined on the role
+func (p *provider) Login(ctx context.Context, username, password string, toBeDefined map[string]interface{}) (*govmomi.Client, error) {
+	return p.settings.makeGovmomiClient(username, password)
 }
 
-func (sc *provider) StartSession(ctx context.Context, toBeDefined map[string]interface{}) (string, error) {
+func (p *provider) StartSession(ctx context.Context, toBeDefined map[string]interface{}) (string, error) {
 	return "", nil
 }
 
-func (sc *provider) RenewSession(ctx context.Context, toBeDefined map[string]interface{}) error {
+func (p *provider) RenewSession(ctx context.Context, toBeDefined map[string]interface{}) error {
 	return nil
 }
 
-func (sc *provider) RevokeSession(ctx context.Context, toBeDefined map[string]interface{}) error {
+func (p *provider) RevokeSession(ctx context.Context, toBeDefined map[string]interface{}) error {
 	return nil
 }
 
-func (sc *provider) UserExists(ctx context.Context, username string) (bool, error) {
+func (p *provider) UserExists(ctx context.Context, username string) (bool, error) {
 	return false, nil
 }
 
-func (sc *provider) RoleExists(ctx context.Context, role string) (bool, error) {
+func (p *provider) RoleExists(ctx context.Context, role string) (bool, error) {
 	return false, nil
 }
 
-func (sc *provider) GroupExists(ctx context.Context, group string) (bool, error) {
+func (p *provider) GroupExists(ctx context.Context, group string) (bool, error) {
 	return false, nil
 }
 
@@ -69,6 +72,7 @@ func newVSphereProvider(settings *clientSettings) (VSphereProvider, error) {
 
 	p := &provider{
 		govmomiClient: govmomiClient,
+		settings:      settings,
 	}
 	return p, nil
 }

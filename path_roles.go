@@ -17,11 +17,9 @@ const (
 	credentialTypeSP = 0
 )
 
-// roleEntry is a Vault role construct that maps to Azure roles or Applications
+// roleEntry is a Vault role construct that maps to vSphere roles or Applications
 type roleEntry struct {
 	// CredentialType      int           `json:"credential_type"` // Reserved. Always SP at this time.
-	// AzureRoles          []*AzureRole  `json:"azure_roles"`
-	// AzureGroups         []*AzureGroup `json:"azure_groups"`
 	Username string `json:"username"`
 	Password string `json:"password"` // make sure we dont serialize it back though
 	// ApplicationObjectID string        `json:"application_object_id"`
@@ -50,11 +48,11 @@ func pathsRole(b *vsphereSecretBackend) []*framework.Path {
 				},
 				"vsphere_roles": {
 					Type:        framework.TypeCommaStringSlice,
-					Description: "Comma separated list of VSphere roles to assign - when password is empty.",
+					Description: "Comma separated list of vSphere roles to assign - when password is empty.",
 				},
 				"vsphere_groups": {
 					Type:        framework.TypeCommaStringSlice,
-					Description: "Comma separated list of VSphere groups to assign the temporary user to - when password is empty.",
+					Description: "Comma separated list of vSphere groups to assign the temporary user to - when the password is empty.",
 				},
 				"ttl": {
 					Type:        framework.TypeDurationSecond,
@@ -93,12 +91,12 @@ func pathsRole(b *vsphereSecretBackend) []*framework.Path {
 // for the given credential type.
 //
 // Dynamic Service Principal:
-//   Azure roles are checked for existence. The Azure role lookup step will allow the
+//   vSphere roles are checked for existence. The vSphere role lookup step will allow the
 //   operator to provide a role name or ID. ID is unambigious and will be used if provided.
 //   Given just role name, a search will be performed and if exactly one match is found,
 //   that role will be used.
 
-//   Azure groups are checked for existence. The Azure groups lookup step will allow the
+//   vSphere groups are checked for existence. The vSphere groups lookup step will allow the
 //   operator to provide a groups name or ID. ID is unambigious and will be used if provided.
 //   Given just group name, a search will be performed and if exactly one match is found,
 //   that group will be used.

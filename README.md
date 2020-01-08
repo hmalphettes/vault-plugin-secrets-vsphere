@@ -25,7 +25,7 @@ management tool.
 
 1. Enable the vSphere secrets engine:
 
-    ```bash
+    ```sh
     $ vault secrets enable vsphere
     Success! Enabled the vsphere secrets engine at: vsphere/
     ```
@@ -35,7 +35,7 @@ management tool.
 
 1. Configure the secrets engine with `admin` account credentials:
 
-    ```bash
+    ```sh
     $ vault write vsphere/config \
     url=$GOVMOMI_URL \
     username=$GOVMOMI_USERNAME \
@@ -54,13 +54,13 @@ a set of vSphere roles that will be assigned to a dynamically created service pr
 
 To configure a role called "my-role" with an existing user:
 
-    ```bash
+    ```sh
     $ vault write vsphere/roles/my-role username=<existing_username> password=<existing_password-or-empty> ttl=1h
     ```
 
 Alternatively, to configure the role to create a new user with vSphere roles (?? does this exist ??):
 
-    ```bash
+    ```sh
     $ vault write vsphere/roles/my-role ttl=1h vsphere_roles=VMsAdmin,DisksAdmin" vsphere_groups="PerfView"
     ```
 
@@ -91,16 +91,18 @@ $ vault secrets enable vsphere
 $ vault write vsphere/config url="http://localhost:8056" username="root" password="root" insecure="true"
 Success! Data written to: vsphere/config
 
-# Retrieve secret from Mock secrets engine
-$ vault read mock/test
-Key      Value
----      -----
-hello    world
+# configure a role that relies on a static user
+vault write vsphere/roles/rootrole username="root" password="root" ttl="20m"
+
+# create a new vSphere client session that will be revoked after 20m
+vault write -f vsphere/session/rootrole
+
+# configure a role with dynamic credentials
+vault write vsphere/roles/dynarole username="vaultrole-???" ttl="20m" vsphere_roles='[{role_name:"VM Administrator",folders:"esx0/vms/tenant1"},{role_name:"Storage Administrator",folders:"esx0/storage/tenant1,esx0/storage/shared",tags:"tenant1"}]'
+
 ```
 
 ## License
-
-Mock was contributed to the HashiCorp community by [hasheddan](https://github.com/hasheddan/vault-plugin-secrets-covert). In doing so, the original license has been removed.
 
 Most of the code is modeled after the github.com/hashicorp/vault-plugin-secrets-azure
 

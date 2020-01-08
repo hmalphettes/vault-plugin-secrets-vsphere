@@ -2,6 +2,7 @@ package vspheresecrets
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/vmware/govmomi"
 )
 
 const (
@@ -38,7 +40,7 @@ func secretStaticServicePrincipal(b *vsphereSecretBackend) *framework.Secret {
 
 func pathServicePrincipal(b *vsphereSecretBackend) *framework.Path {
 	return &framework.Path{
-		Pattern: fmt.Sprintf("creds/%s", framework.GenericNameRegex("role")),
+		Pattern: fmt.Sprintf("session/%s", framework.GenericNameRegex("role")),
 		Fields: map[string]*framework.FieldSchema{
 			"role": {
 				Type:        framework.TypeLowerCaseString,
@@ -67,25 +69,24 @@ func (b *vsphereSecretBackend) pathSPRead(ctx context.Context, req *logical.Requ
 	}
 
 	var resp *logical.Response
-	/*
-		client, err := b.getClient(ctx, req.Storage)
-		if err != nil {
-			return nil, err
-		}
 
-		if role.ApplicationObjectID != "" {
-			resp, err = b.createStaticSPSecret(ctx, client, roleName, role)
-		} else {
-			resp, err = b.createSPSecret(ctx, client, roleName, role)
-		}
+	client, err := b.getClient(ctx, req.Storage)
+	if err != nil {
+		return nil, err
+	}
 
-		if err != nil {
-			return nil, err
-		}
+	if role.Password != "" {
+		resp, err = b.createStaticSPSecret(ctx, client, roleName, role)
+	} else {
+		resp, err = b.createSPSecret(ctx, client, roleName, role)
+	}
 
-		resp.Secret.TTL = role.TTL
-		resp.Secret.MaxTTL = role.MaxTTL
-	*/
+	if err != nil {
+		return nil, err
+	}
+
+	resp.Secret.TTL = role.TTL
+	resp.Secret.MaxTTL = role.MaxTTL
 	return resp, nil
 }
 
@@ -145,15 +146,29 @@ func (b *vsphereSecretBackend) createStaticSPSecret(ctx context.Context, c *clie
 	lock.Lock()
 	defer lock.Unlock()
 
-	// keyID, password, err := c.addAppPassword(ctx, role.ApplicationObjectID, spExpiration)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	govmomiClient, err := c.provider.Login(ctx, role.Username, role.Password, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	marshaledClient, err := govmomiClient.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("marshaledClient=", string(marshaledClient))
+
+	var clientAsMap map[string]interface{}
+	err = json.Unmarshal(marshaledClient, &clientAsMap)
+	if err != nil {
+		return nil, err
+	}
 
 	data := map[string]interface{}{
-		"username": role.Username,
-		"password": role.Password, //password,
+		"govmomiclient": clientAsMap,
 	}
+	// TODO: data["cookie"] = the-cookie (?)
+
 	internalData := map[string]interface{}{
 		// "app_object_id": role.ApplicationObjectID,
 		// "key_id":        keyID,
@@ -246,28 +261,39 @@ func (b *vsphereSecretBackend) spRevoke(ctx context.Context, req *logical.Reques
 }
 
 func (b *vsphereSecretBackend) staticSPRevoke(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	appObjectIDRaw, ok := req.Secret.InternalData["app_object_id"]
+	return b.logoutFromSession(ctx, req, d)
+}
+
+func (b *vsphereSecretBackend) logoutFromSession(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	govmomiClient := &govmomi.Client{}
+
+	clientMarshaled, ok := req.Data["govmomiclient"]
 	if !ok {
-		return nil, errors.New("internal data 'app_object_id' not found")
+		return nil, errors.New("data 'govmomiclient' not found")
 	}
 
-	appObjectID := appObjectIDRaw.(string)
-
-	_, err := b.getClient(ctx, req.Storage)
+	clientMarshaledRaw, err := json.Marshal(clientMarshaled)
 	if err != nil {
+		return nil, err
+	}
+
+	// the logged in client:
+	err = govmomiClient.UnmarshalJSON(clientMarshaledRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: lock this particular session by its cookie?
+	// lock := locksutil.LockForKey(b.appLocks, appObjectID)
+	// lock.Lock()
+	// defer lock.Unlock()
+
+	err = govmomiClient.Logout(ctx)
+	if err != nil {
+		// should it be just a warning? probably ok as this "just" ends up in the logs. we could filter eventually the "already logged out errors"
 		return nil, errwrap.Wrapf("error during revoke: {{err}}", err)
 	}
-
-	_ /*keyIDRaw*/, ok = req.Secret.InternalData["key_id"]
-	if !ok {
-		return nil, errors.New("internal data 'key_id' not found")
-	}
-
-	lock := locksutil.LockForKey(b.appLocks, appObjectID)
-	lock.Lock()
-	defer lock.Unlock()
-
-	return nil, nil //c.deleteAppPassword(ctx, appObjectID, keyIDRaw.(string))
+	return nil, nil
 }
 
 const pathServicePrincipalHelpSyn = `
