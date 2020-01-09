@@ -39,12 +39,15 @@ func (settings *clientSettings) makeLoginURL(username, password string) *url.URL
 	return vURL
 }
 
-// makeGovmomiClient returns a new govmomi client. If no username is passed, then no authentication takes place as documented in govmomi.NewClient.
-func (settings *clientSettings) makeGovmomiClient(username, password string) (*govmomi.Client, error) {
-	u := settings.makeLoginURL(username, password)
-	client, err := govmomi.NewClient(context.Background(), u, settings.Insecure)
-	return client, err
+func (settings *clientSettings) Userinfo() *url.Userinfo {
+	return url.UserPassword(settings.Username, settings.Password)
+}
 
+// makeGovmomiClient returns a new govmomi client. If no username is passed, then no authentication takes place as documented in govmomi.NewClient.
+func (settings *clientSettings) makeGovmomiClient(ctx context.Context, username, password string) (*govmomi.Client, error) {
+	u := settings.makeLoginURL(username, password)
+	client, err := govmomi.NewClient(ctx, u, settings.Insecure)
+	return client, err
 }
 
 // getClientSettings creates a new clientSettings object.
@@ -128,7 +131,7 @@ func (b *vsphereSecretBackend) getClient(ctx context.Context, s logical.Storage)
 		b.settings = settings
 	}
 
-	p, err := b.getProvider(b.settings)
+	p, err := b.getProvider(ctx, b.settings)
 	if err != nil {
 		return nil, err
 	}

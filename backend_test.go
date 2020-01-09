@@ -35,7 +35,12 @@ func getTestBackend(t *testing.T, initConfig bool) (*vsphereSecretBackend, logic
 		t.Fatalf("unable to create backend: %v", err)
 	}
 
-	b.settings = new(clientSettings)
+	b.settings = &clientSettings{
+		URL:      govmomitest.SimulatorURL,
+		Username: govmomitest.SimulatorServerSudoerUsername,
+		Password: govmomitest.SimulatorServerSudoerPassword,
+		Insecure: true,
+	}
 	// mockProvider := newMockProvider()
 	// b.getProvider = func(s *clientSettings) (VSphereProvider, error) {
 	// 	return mockProvider, nil

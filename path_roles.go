@@ -244,7 +244,7 @@ func (b *vsphereSecretBackend) pathRoleUpdate(ctx context.Context, req *logical.
 	// }
 
 	if role.Password == "" && len(role.VSphereRoles) == 0 && len(role.VSphereGroups) == 0 {
-		return logical.ErrorResponse("either VSphere role definitions, group definitions, or a username and password must be provided"), nil
+		return logical.ErrorResponse("either vSphere role definitions, group definitions, or a username and password must be provided"), nil
 	}
 
 	// save role

@@ -6,6 +6,12 @@ import (
 	"time"
 
 	"github.com/vmware/govmomi/simulator"
+
+	// Register vcsim optional endpoints
+	_ "github.com/vmware/govmomi/lookup/simulator"
+	_ "github.com/vmware/govmomi/pbm/simulator"
+	_ "github.com/vmware/govmomi/sts/simulator"
+	_ "github.com/vmware/govmomi/vapi/simulator"
 )
 
 const (

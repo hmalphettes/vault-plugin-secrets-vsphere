@@ -36,7 +36,7 @@ func (p *provider) GetMountGovmomiClient() *govmomi.Client {
 
 // Login authenticate with the credentials defined on the role
 func (p *provider) Login(ctx context.Context, username, password string, toBeDefined map[string]interface{}) (*govmomi.Client, error) {
-	return p.settings.makeGovmomiClient(username, password)
+	return p.settings.makeGovmomiClient(ctx, username, password)
 }
 
 func (p *provider) StartSession(ctx context.Context, toBeDefined map[string]interface{}) (string, error) {
@@ -64,8 +64,8 @@ func (p *provider) GroupExists(ctx context.Context, group string) (bool, error) 
 }
 
 // newVSphereProvider creates an vsphereProvider, backed by VSphere client objects for underlying services.
-func newVSphereProvider(settings *clientSettings) (VSphereProvider, error) {
-	govmomiClient, err := settings.makeGovmomiClient(settings.Username, settings.Password)
+func newVSphereProvider(ctx context.Context, settings *clientSettings) (VSphereProvider, error) {
+	govmomiClient, err := settings.makeGovmomiClient(ctx, settings.Username, settings.Password)
 	if err != nil {
 		return nil, err
 	}

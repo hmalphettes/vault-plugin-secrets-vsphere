@@ -14,7 +14,7 @@ import (
 type vsphereSecretBackend struct {
 	*framework.Backend
 
-	getProvider func(*clientSettings) (VSphereProvider, error)
+	getProvider func(context.Context, *clientSettings) (VSphereProvider, error)
 	client      *client
 	settings    *clientSettings
 	lock        sync.RWMutex
