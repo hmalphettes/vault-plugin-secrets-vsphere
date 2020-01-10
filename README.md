@@ -14,12 +14,13 @@ Exploration and POC stage.
 
 Store a vSphere `sudoer` user in Vault.
 Configure roles that create short lived users or sessions managed by Vault.
+Use SAML tokens issued by vSphere's sts endpoint.
 Map existing users to roles.
 Put in place unit tests relying on govmomi/vcsim's mock framework for vSphere.
 
 ## Setup
 
-Most secrets engines must be configured in advance before they can perform their
+The vSphere secrets engines must be configured in advance before it can perform its
 functions. These steps are usually completed by an operator or configuration
 management tool.
 
@@ -33,7 +34,7 @@ management tool.
     By default, the secrets engine will mount at the name of the engine. To
     enable the secrets engine at a different path, use the `-path` argument.
 
-1. Configure the secrets engine with `admin` account credentials:
+2. Configure the secrets engine with `admin` account credentials:
 
     ```sh
     $ vault write vsphere/config \
@@ -49,7 +50,7 @@ management tool.
 
     In that case only roles configured with an existing user and password will be functional
 
-2. Configure a role. A role may be set up with either an existing user, or
+3. Configure a role. A role may be set up with either an existing user, or
 a set of vSphere roles that will be assigned to a dynamically created service principal.
 
 To configure a role called "my-role" with an existing user:
