@@ -9,12 +9,10 @@ import (
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/sts"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
-
-	// Register vcsim optional endpoints... we still get a 404 when hitting vsim with an sts call.
-	_ "github.com/vmware/govmomi/sts/simulator"
 )
 
 func TestProvider(t *testing.T) {
@@ -28,7 +26,6 @@ func TestProvider(t *testing.T) {
 	if storage == nil {
 		t.Fatal("The storage must not be nil")
 	}
-	fmt.Println(b.settings)
 	ctx := context.Background()
 	govmomiClient, err := b.settings.makeGovmomiClient(ctx, govmomitest.SimulatorServerSudoerUsername, govmomitest.SimulatorServerSudoerPassword)
 	nilErr(t, err)
@@ -48,7 +45,8 @@ func TestProvider(t *testing.T) {
 	testListDatacenters(t, &govmomi.Client{Client: cloned})
 
 	// try to get a SAML token with the original client:
-	stsClient, err := sts.NewClient(ctx, govmomiClient.Client)
+	ctx2 := context.Background() // must use a separate context or we would get the Session from it.
+	stsClient, err := sts.NewClient(ctx2, govmomiClient.Client)
 	nilErr(t, err)
 	req := sts.TokenRequest{
 		// Certificate: c.Certificate(),
@@ -59,17 +57,20 @@ func TestProvider(t *testing.T) {
 		// Token:       cmd.token,
 		// Lifetime: cmd.life,
 	}
-	signer, err := stsClient.Issue(ctx, req)
+	signer, err := stsClient.Issue(ctx2, req)
 	nilErr(t, err)
 
 	header := soap.Header{Security: signer}
 
-	err = govmomiClient.SessionManager.LoginByToken(govmomiClient.WithHeader(ctx, header))
+	// The simulator is limited with regard to supporting multiple sessions.
+	// we test straight against a brand new session manager... as demonstrated by govmomi/sts/client_test.go
+	ctx3 := context.Background() // must use a separate context or we would get the Session from it.
+	vimClientNotLogged, err := vim25.NewClient(ctx, soap.NewClient(b.settings.makeLoginURL("", ""), true))
+	err = session.NewManager(vimClientNotLogged).LoginByToken(vimClientNotLogged.WithHeader(ctx3, header))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// govmomiClient.Login(context.Background(), url.UserPass(govmomitest.SimulatorServerSudoerUsername, govmomitest.SimulatorServerSudoerPassword))
 }
 
 func testListDatacenters(tb testing.TB, govmomiClient *govmomi.Client) {

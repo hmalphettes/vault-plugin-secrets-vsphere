@@ -7,7 +7,7 @@ import (
 
 	"github.com/vmware/govmomi/simulator"
 
-	// Register vcsim optional endpoints
+	// Register vcsim optional endpoints... requires unreleased dec-2019 version of govmomi
 	_ "github.com/vmware/govmomi/lookup/simulator"
 	_ "github.com/vmware/govmomi/pbm/simulator"
 	_ "github.com/vmware/govmomi/sts/simulator"
@@ -49,6 +49,8 @@ func createSimulator(t *testing.T) *simulator.Model {
 	model.Service.Listen = &url.URL{
 		User: url.UserPassword(SimulatorServerSudoerUsername, SimulatorServerSudoerPassword),
 	}
+
+	model.Service.RegisterEndpoints = true
 
 	return model
 }
