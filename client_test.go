@@ -15,7 +15,7 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 )
 
-func TestProvider(t *testing.T) {
+func TestVSphere(t *testing.T) {
 	server := govmomitest.Setup(t)
 	defer govmomitest.TearDown()
 
@@ -45,7 +45,7 @@ func TestProvider(t *testing.T) {
 	testListDatacenters(t, &govmomi.Client{Client: cloned})
 
 	// try to get a SAML token with the original client:
-	ctx2 := context.Background() // must use a separate context or we would get the Session from it.
+	ctx2 := context.Background() // use a separate context to guarantee independence
 	stsClient, err := sts.NewClient(ctx2, govmomiClient.Client)
 	nilErr(t, err)
 	req := sts.TokenRequest{
@@ -64,7 +64,7 @@ func TestProvider(t *testing.T) {
 
 	// The simulator is limited with regard to supporting multiple sessions.
 	// we test straight against a brand new session manager... as demonstrated by govmomi/sts/client_test.go
-	ctx3 := context.Background() // must use a separate context or we would get the Session from it.
+	ctx3 := context.Background() // must use a separate context to guarantee independence
 	vimClientNotLogged, err := vim25.NewClient(ctx, soap.NewClient(b.settings.makeLoginURL("", ""), true))
 	err = session.NewManager(vimClientNotLogged).LoginByToken(vimClientNotLogged.WithHeader(ctx3, header))
 	if err != nil {
@@ -82,4 +82,22 @@ func testListDatacenters(tb testing.TB, govmomiClient *govmomi.Client) {
 		tb.Fatal("Expected to be able to list a single datacenter")
 	}
 
+}
+
+func makeGovmomiClientFromToken(ctx context.Context, b *vsphereSecretBackend, signer *sts.Signer) (*govmomi.Client, error) {
+	header := soap.Header{Security: signer}
+
+	vimClient, err := vim25.NewClient(ctx, soap.NewClient(b.settings.makeLoginURL("", ""), true))
+	if err != nil {
+		return nil, err
+	}
+	sessionManager := session.NewManager(vimClient)
+	err = session.NewManager(vimClient).LoginByToken(vimClient.WithHeader(ctx, header))
+	if err != nil {
+		return nil, err
+	}
+	return &govmomi.Client{
+		Client:         vimClient,
+		SessionManager: sessionManager,
+	}, nil
 }

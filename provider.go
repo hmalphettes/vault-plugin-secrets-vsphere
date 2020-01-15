@@ -18,8 +18,11 @@ type VSphereProvider interface {
 	RoleExists(ctx context.Context, role string) (bool, error)
 	GroupExists(ctx context.Context, group string) (bool, error)
 	UserExists(ctx context.Context, username string) (bool, error)
-	IssueUserToken(ctx context.Context, username, password string, ttl time.Duration, renewable, delegatable bool) (string, error)
-	IssueSolutionToken(ctx context.Context, solutionCert *tls.Certificate, token string, ttl time.Duration, renewable, delegatable bool) (string, error)
+	// IssueUserToken login with a user account and request an STS token
+	IssueUserToken(ctx context.Context, username, password string, ttl time.Duration, renewable, delegatable bool) (*sts.Signer, error)
+	// IssueSolutionToken login with a Solution's certificate and token and request an STS token
+	IssueSolutionToken(ctx context.Context, solutionCert *tls.Certificate, token string, ttl time.Duration, renewable, delegatable bool) (*sts.Signer, error)
+	// Login with a user account
 	Login(ctx context.Context, username, password string, toBeDefined map[string]interface{}) (*govmomi.Client, error)
 	StartSession(ctx context.Context, toBeDefined map[string]interface{}) (string, error)
 	RenewSession(ctx context.Context, toBeDefined map[string]interface{}) error
@@ -45,14 +48,14 @@ func (p *provider) Login(ctx context.Context, username, password string, toBeDef
 	return p.settings.makeGovmomiClient(ctx, username, password)
 }
 
-func (p *provider) IssueUserToken(ctx context.Context, username, password string, ttl time.Duration, renewable, delegatable bool) (string, error) {
+func (p *provider) IssueUserToken(ctx context.Context, username, password string, ttl time.Duration, renewable, delegatable bool) (*sts.Signer, error) {
 	c, err := p.Login(ctx, username, password, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	stsClient, err := sts.NewClient(ctx, c.Client)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Could support issuing tokens via a token+client-certificate
@@ -64,19 +67,19 @@ func (p *provider) IssueUserToken(ctx context.Context, username, password string
 	}
 	signer, err := stsClient.Issue(ctx, req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return signer.Token, nil
+	return signer, nil
 }
 
-func (p *provider) IssueSolutionToken(ctx context.Context, solutionCert *tls.Certificate, token string, ttl time.Duration, renewable, delegatable bool) (string, error) {
+func (p *provider) IssueSolutionToken(ctx context.Context, solutionCert *tls.Certificate, token string, ttl time.Duration, renewable, delegatable bool) (*sts.Signer, error) {
 	c, err := p.Login(ctx, "", "", nil) //solutionCert, nil) // TODO: make a vim25 client directly probably
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	stsClient, err := sts.NewClient(ctx, c.Client)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Could support issuing tokens via a token+client-certificate
@@ -90,9 +93,9 @@ func (p *provider) IssueSolutionToken(ctx context.Context, solutionCert *tls.Cer
 	}
 	signer, err := stsClient.Issue(ctx, req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return signer.Token, nil
+	return signer, nil
 }
 
 func (p *provider) StartSession(ctx context.Context, toBeDefined map[string]interface{}) (string, error) {
